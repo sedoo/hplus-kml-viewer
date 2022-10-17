@@ -1,0 +1,80 @@
+{
+    "name": "hplus-portal-vjs",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "serve": "vue-cli-service serve",
+        "serve:distantpreproduction": "vue-cli-service serve --mode distantpreproduction",
+        "serve:distantproduction": "vue-cli-service serve --mode distantproduction",
+        "build": "rm -rf ./dist && npm cache clean --force && vue-cli-service build",
+        "build:preproduction": "rm -rf ./dist && npm cache clean --force && vue-cli-service build --mode preproduction",
+        "build:productiontoodur": "rm -rf ./dist && npm cache clean --force && vue-cli-service build --mode productiontoodur",
+        "build:preproductionspip": "rm -rf ./dist && npm cache clean --force && vue-cli-service build --mode preproductionspip",
+        "lint": "vue-cli-service lint"
+    },
+    "dependencies": {
+        "@sedoo/unidoo": "0.0.59",
+        "axios": "^0.19.0",
+        "core-js": "^2.6.5",
+        "https": "^1.0.0",
+        "jszip": "^3.10.1",
+        "jszip-utils": "^0.1.0",
+        "moment": "^2.24.0",
+        "moment-duration-format": "^2.3.2",
+        "ol": "7.1.0",
+        "vue": "^2.6.10",
+        "vue-axios": "^2.1.4",
+        "vue-clamp": "^0.2.2",
+        "vue-custom-element": "1.4.4",
+        "vue-fullscreen": "^2.1.5",
+        "vue-jwt-decode": "^0.1.0",
+        "vuetify": "2.4.0",
+        "vuetify-datetime-picker": "^2.1.1",
+        "vuex": "^3.0.1",
+        "vuex-persist": "^2.2.0"
+    },
+    "devDependencies": {
+        "@mdi/font": "^4.4.95",
+        "@vue/cli-plugin-babel": "^3.11.0",
+        "@vue/cli-plugin-eslint": "^3.11.0",
+        "@vue/cli-service": "^3.11.0",
+        "babel-eslint": "^10.0.1",
+        "eslint": "^5.16.0",
+        "eslint-plugin-vue": "^5.0.0",
+        "exports-loader": "^0.6.4",
+        "sass": "^1.17.4",
+        "sass-loader": "^7.1.0",
+        "vue-cli-plugin-vuetify": "^0.6.3",
+        "vue-router": "^3.0.7",
+        "vue-template-compiler": "^2.6.10",
+        "vuetify-loader": "^1.2.2",
+        "webpack-cdn-upload-plugin": "^2.0.2"
+    },
+    "eslintConfig": {
+        "root": true,
+        "env": {
+            "node": true
+        },
+        "extends": [
+            "plugin:vue/essential",
+            "eslint:recommended"
+        ],
+        "rules": {
+            "no-console": 0,
+            "no-debugger": 0,
+            "semester": 0
+        },
+        "parserOptions": {
+            "parser": "babel-eslint"
+        }
+    },
+    "postcss": {
+        "plugins": {
+            "autoprefixer": {}
+        }
+    },
+    "browserslist": [
+        "> 1%",
+        "last 2 versions"
+    ]
+}

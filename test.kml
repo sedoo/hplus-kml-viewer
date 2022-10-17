@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Folder>
+  <Placemark>
+    <name>Simple placemark</name>
+    <Point>
+      <coordinates>51.87,-46.42,0</coordinates>
+    </Point>
+  </Placemark>
+  <Placemark>
+    <name>Simple placemark 2</name>
+    <Point>
+      <coordinates>77.5312,-38.7147,0</coordinates>
+    </Point>
+  </Placemark>
+  </Folder>
+</kml>
