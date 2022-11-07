@@ -13,37 +13,72 @@ PORT-DOUVOT
 <v-container fluid>
     <v-row align="center">
 
+
   <v-select
           :items="links"
           label="Links"
           v-model="link"
+          v-if="showLinks"
         ></v-select>
 
     </v-row>
 </v-container>
 
-
   <v-sheet id="hplusmap" class="hplusmap">
                   <div ref="initZoomButton">
-                    <div class="ol-full-screen ol-unselectable ol-control" style="margin-top:70px">
+                    <div class="ol-full-screen ol-unselectable ol-control" style="margin-top:60px">
                       <button @click="initZoom()" title="reinitilize Zoom" class="ol-zoom-out" type="button"><span class="mdi mdi-restart"></span></button>
                     </div>
                   </div>
                   <div id="layercontrol">
-                    <v-menu class="white--text" left offset-x content-class="my-menu" :close-on-content-click="false">
+                    <v-menu class="white--text pa-3 " left offset-x content-class="my-menu" :close-on-content-click="false">
                       <template v-slot:activator="{ on }">
-                        <div style="margin-top:35px" class="ol-full-screen ol-unselectable ol-control">
-                          <button title="Zoom in" class="ol-zoom-in" type="button"><span class="mdi mdi-layers-triple" v-on="on"></span></button> </div>
-
+                        <div style="margin-top:30px" class="ol-full-screen ol-unselectable ol-control">
+                          <button title="Show layers" class="ol-zoom-in layers-button" type="button"><span class="mdi mdi-layers-triple" v-on="on"></span></button> </div>
                       </template>
 
-                      <v-radio-group small v-model="layerdisplay">
-                        <v-radio class="ml-2" label="Satellite" value="satellite"></v-radio>
-                      </v-radio-group>
+                      <div class="pa-3" :style="{width:layerMenuOffset+'px'}">
+                        <v-card dense elevation="0" color="transparent">
+                          <v-card-title class="pa-0" >
+                            <v-spacer></v-spacer>
+                            <v-switch v-model="hideEmptyNodes">
+                               <template #prepend>
+                                <v-label><span style="white-space: nowrap;">Hide empty nodes</span></v-label>
+                              </template>
+                            </v-switch>
+                          </v-card-title>
+                        </v-card>
+                        <v-treeview dense :items="filteredFolders">
+
+
+  <template v-slot:append="{ item}">
+
+<v-btn  v-if="item.description"
+              icon @click="displayDescription(item)"
+            >
+              <v-icon>mdi-information</v-icon>
+            </v-btn>
+
+    </template>
+                        </v-treeview>
+                      </div>
                     </v-menu>
                   </div>
                 </v-sheet>
                 <div ref="popup" class="ol-popup "></div>
+                <v-card v-if="showCurrentDescription" class="mt-2">
+                <v-card-title>Information
+                  <v-spacer></v-spacer>
+                  <v-btn   icon @click="showCurrentDescription=false"
+            >
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+                </v-card-title>
+                <v-card-text>
+                  <div style="overflow-x: auto;" v-html="currentDescription"></div>
+                </v-card-text>
+                </v-card>
+
   </v-app>
 </template>
 
@@ -65,6 +100,7 @@ import FullScreen from "ol/control/FullScreen";
 import KML from "ol/format/KML";
 import JSZip from 'jszip'
 import JSZipUtils from 'jszip-utils'
+import kmlParser from 'js-kml-parser'
 
 class KMZ extends KML {
 
@@ -90,6 +126,25 @@ class KMZ extends KML {
 export default {
   name: "hplus-kml-viewer",
   computed: {
+
+    filteredFolders() {
+      if (!this.hideEmptyNodes) {
+        return this.folders
+      }
+      else {
+        let filtered = []
+        for (let i=0; i<this.folders.length;i++) {
+          let temp = this.folders[i];
+          let json = JSON.stringify(temp).replace(' ','')
+          // In a really basic strategy, we hide all the nodes without any description - maybe we should ask other criterions...
+          if (json.indexOf('"description":"')>0) {
+            filtered.push(temp)
+          }
+        }
+        return filtered
+      }
+
+  }
    
   },
 
@@ -107,32 +162,88 @@ export default {
     return {
       map: null,
       baselayers: [],
+      folders: [],
+      drawer: false,
       kmlLayer: null,
-      layerdisplay: "satellite",
-      link: "https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/larzac.kmz",
+      layerMenuOffset: 500,
+      link: null,
+      currentDescription:"",
+      showCurrentDescription: false,
+      showLinks: false,
+      hideEmptyNodes: false,
       links: [
+        {text:"AURADE", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/aurade.kmz"},
         {text:"LARZAC", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/larzac.kmz"},
-        {text:"AURADE", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/aurade.kmz"}
+        {text:"GUIDEL", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/guidel.kmz"}
+
       ]
-      // links: [
-      //   {text:"Local ROSAME", value:"http://localhost:8081/metadata/fba5f146-3bf7-44c0-84aa-ad9565b5cff2?language=en&output=kml"},
-      //   {text:"Distant ROSAME", value:"https://api.sedoo.fr/odatis-catalogue-prod/metadata/fba5f146-3bf7-44c0-84aa-ad9565b5cff2?language=en&output=kml"},
-      //   {text:"Distant AURADE", value:"https://hplus.ore.fr/public/aurade.kmz"},
-      //   {text:"Local AURADE", value:"http://localhost:8080/aurade.kmz"},
-      //   {text:"Distant AURADE", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/aurade.kmz"},
-      //   {text:"Local GUIDEL", value:"http://localhost:8080/guidel.kmz"}
-      // ]
     };
   },
 
   mounted() {
     this.initMap();
     this.loadData();
+    
+
+
+              if (this.links && this.links.length>0) {
+
+                let aux = this.getSiteParameter();
+
+                let useFirstSite = true;
+
+                if (aux && aux.length>0) {
+                    let tmp = this.getLinkFromSiteName(aux);
+                    if (tmp != null) {
+                      this.link = tmp;
+                      useFirstProject = false
+                      this.showLinks = false
+                    }
+                } 
+
+                if (useFirstSite) {
+                  this.link=this.links[0].value
+                  this.showLinks=true
+                }
+              }
+
+
+
+
+
+    this.updateLayer(this.link)
   },
 
   methods: {
 
+    getLinkFromSiteName: function(projectName) {
+        for (let i=0; i < this.links.length; i++) {
+          if (this.links[i].text.toLowerCase() == projectName.toLowerCase()) {
+            return this.links[i].value
+          }
+        }
+        return null
+    },
+
+     getSiteParameter: function() {
+      return this.getURLParameter("site");
+    },
+    getURLParameter: function(sParam) {
+      var sPageURL = window.location.search.substring(1);
+      var sURLVariables = sPageURL.split("&");
+      for (var i = 0; i < sURLVariables.length; i++) {
+        var sParameterName = sURLVariables[i].split("=");
+        if (sParameterName[0] == sParam) {
+          return decodeURIComponent(sParameterName[1]);
+        }
+      }
+      return null;
+    },
+
     updateLayer(newValue) {
+    if (newValue == null) {
+      return
+    }
  if (this.kmlLayer != null) {
         this.map.removeLayer(this.kmlLayer);
       } 
@@ -146,6 +257,7 @@ export default {
             });
 
           this.map.addLayer(this.kmlLayer);
+          
           let kmlLayer = this.kmlLayer;
     let map = this.map;
     let source = kmlLayer.getSource()
@@ -170,6 +282,14 @@ export default {
             throw err; // or handle err
         }
 
+
+        /*
+        zip.file("image.png").async("arraybuffer").then(function(content) {
+  var blob = new Blob([content], {'type': 'image/png'})
+  document.getElementById("my_png").src = URL.createObjectURL(blob);
+});*/
+
+
         let zip = new JSZip();
         JSZip.loadAsync(data).then(function (zip) { 
 
@@ -178,8 +298,10 @@ export default {
               kmlFile.async("string")
             .then(function (content) {
 
+              let geoJson = kmlParser.toGeoJson(content);
+              let nodes = new DOMParser().parseFromString(content, "text/xml");
+              self.loadFolders(nodes)
               let features = new KML().readFeatures(content);
-
               let vectorSource = new VectorSource({
                 features: features
               });
@@ -213,6 +335,73 @@ export default {
         size: this.map.getSize(),
         maxZoom: this.$maxFitZoom
       });
+    },
+
+    loadFolders(nodes) {
+      let folders = []
+      let document = nodes.getElementsByTagName("Document")[0]
+      let folderNodes = this.getChildrenByTagName(document, "Folder");
+      for (let folderNode of folderNodes) {
+          let name = folderNode.getElementsByTagName("name")[0].innerHTML;
+          let description = null
+          let aux = this.getChildrenByTagName(folderNode, "Placemark")
+          
+          if (aux.length>0) {
+            aux = this.getChildrenByTagName(aux[0], "description")
+            if (aux.length>0) {
+              description = aux[0].innerHTML;
+            }
+          }
+          let folder = {}
+          folder.name = name
+          folder.description = description
+          folder.children = []
+          folders.push(folder)
+          this.loadSubFolders(folderNode, folder)
+}
+      this.folders = folders
+    },
+
+    loadSubFolders(parentNode, parent) {
+      let folderNodes = this.getChildrenByTagName(parentNode, "Folder");
+       for (let folderNode of folderNodes) {
+          let name = folderNode.getElementsByTagName("name")[0].innerHTML;
+          let description = null
+          let aux = this.getChildrenByTagName(folderNode, "Placemark")
+          
+          if (aux.length>0) {
+            aux = this.getChildrenByTagName(aux[0], "description")
+            if (aux.length>0) {
+              description = aux[0].innerHTML;
+            }
+          }
+
+          let folder = {}
+          folder.name = name
+          folder.description = description
+          folder.children = []
+          parent.children.push(folder)
+          this.loadSubFolders(folderNode, folder)
+        }
+    },
+
+    getChildrenByTagName(nodes, tagName) {
+      let result = []
+      for (let child of nodes.children) {
+        if (child.tagName.toLowerCase() == tagName.toLowerCase()) {
+          result.push(child)
+        }
+      }
+      return result;
+
+    },
+
+    displayDescription(item) {
+      let aux = item.description;
+      aux = aux.replace("<![CDATA[","").replace("]]>", "")
+      this.currentDescription = aux
+      let tmp = this.$el.querySelector(".layers-button").click()
+      this.showCurrentDescription = true
     },
 
     initMap() {
@@ -284,6 +473,12 @@ export default {
 };
 </script>
 <style >
+
+.my-menu {
+    background-color: hsla(0,0%,100%,.8);
+    border-radius: 0;
+}
+
 .hplusmap {
   height: 500px;
 }
