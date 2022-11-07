@@ -24,6 +24,7 @@ PORT-DOUVOT
     </v-row>
 </v-container>
 
+
   <v-sheet id="hplusmap" class="hplusmap">
                   <div ref="initZoomButton">
                     <div class="ol-full-screen ol-unselectable ol-control" style="margin-top:60px">
@@ -94,7 +95,6 @@ import TileLayer from "ol/layer/Tile";
 import {fromExtent} from 'ol/geom/Polygon';
 import { Vector as VectorLayer } from "ol/layer";
 import { Vector as VectorSource } from "ol/source";
-import { Circle as CircleStyle, Fill, Stroke } from "ol/style";
 import Overlay from "ol/Overlay";
 import FullScreen from "ol/control/FullScreen";
 import KML from "ol/format/KML";
@@ -165,6 +165,7 @@ export default {
       folders: [],
       drawer: false,
       kmlLayer: null,
+      images: [],
       layerMenuOffset: 500,
       link: null,
       currentDescription:"",
@@ -173,9 +174,16 @@ export default {
       hideEmptyNodes: false,
       links: [
         {text:"AURADE", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/aurade.kmz"},
+        {text:"AUVERWATCH", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/auverwatch.kmz"},
+        {text:"DRAIX-BLEONE", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/draix-bleone.kmz"},
+        {text:"GUIDEL", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/guidel.kmz"}, 
+        {text:"HERMALLE-SOUS-ARGENTEAU", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/hermalle-sous-argenteau.kmz"},
+        {text:"HYDERABAD-CHOUTUPPAL", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/hyderabad_choutuppal.kmz"},
+        {text:"HYDERABAD-MAHESHWARAM", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/hyderabad_maheshwaram.kmz"},
+        {text:"HOUAY-PANO", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/houay_pano.kmz"}, 
         {text:"LARZAC", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/larzac.kmz"},
-        {text:"GUIDEL", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/guidel.kmz"}
-
+        {text:"MALLORCA", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/mallorca.kmz"},
+        {text:"ORGEVAL", value:"https://api.sedoo.fr/sedoo-proxy-rest/?url=https://hplus.ore.fr/public/orgeval.kmz"},
       ]
     };
   },
@@ -216,6 +224,10 @@ export default {
 
   methods: {
 
+    getUrlForBlob: function(blob) {
+      return URL.createObjectURL(blob)
+    },
+
     getLinkFromSiteName: function(projectName) {
         for (let i=0; i < this.links.length; i++) {
           if (this.links[i].text.toLowerCase() == projectName.toLowerCase()) {
@@ -241,6 +253,7 @@ export default {
     },
 
     updateLayer(newValue) {
+    this.showCurrentDescription = false
     if (newValue == null) {
       return
     }
@@ -283,13 +296,6 @@ export default {
         }
 
 
-        /*
-        zip.file("image.png").async("arraybuffer").then(function(content) {
-  var blob = new Blob([content], {'type': 'image/png'})
-  document.getElementById("my_png").src = URL.createObjectURL(blob);
-});*/
-
-
         let zip = new JSZip();
         JSZip.loadAsync(data).then(function (zip) { 
 
@@ -309,6 +315,51 @@ export default {
                   self.kmlLayer = new VectorLayer({
               source: vectorSource
             });
+
+            let images = []
+            const pngFiles = zip.file(/\.png$/i)
+            if (pngFiles) {
+              for (let i = 0; i < pngFiles.length; i++) {
+                let name = pngFiles[i].name
+                pngFiles[i].async("arraybuffer").then(function(content) {
+                let blob = new Blob([content], {'type': 'image/png'})
+                let image = {}
+                image.name = name
+                image.blob = blob
+                images.push(image)  
+                })
+              }
+            }
+
+             const jpgFiles = zip.file(/\.jpg$/i)
+            if (jpgFiles) {
+              for (let i = 0; i < jpgFiles.length; i++) {
+                let name = jpgFiles[i].name
+                jpgFiles[i].async("arraybuffer").then(function(content) {
+                let blob = new Blob([content], {'type': 'image/jpg'})
+                let image = {}
+                image.name = name
+                image.blob = blob
+                images.push(image)  
+                })
+              }
+            }
+
+              const jpegFiles = zip.file(/\.jpeg$/i)
+            if (jpegFiles) {
+              for (let i = 0; i < jpegFiles.length; i++) {
+                let name = jpegFiles[i].name
+                jpegFiles[i].async("arraybuffer").then(function(content) {
+                let blob = new Blob([content], {'type': 'image/jpg'})
+                let image = {}
+                image.name = name
+                image.blob = blob
+                images.push(image)  
+                })
+              }
+
+            }
+            self.images=images
 
           self.map.addLayer(self.kmlLayer);
 
@@ -331,7 +382,10 @@ export default {
 
     initZoom() {
       let extent = this.kmlLayer.getSource().getExtent();
-      this.map.getView().fit(extent, {
+      let geom = fromExtent(extent)
+      geom.scale(1.2);
+
+      this.map.getView().fit(geom, {
         size: this.map.getSize(),
         maxZoom: this.$maxFitZoom
       });
@@ -399,9 +453,32 @@ export default {
     displayDescription(item) {
       let aux = item.description;
       aux = aux.replace("<![CDATA[","").replace("]]>", "")
+      //We ensure to have a correct HTML document
+      aux = "<span>"+aux+"</span>"
+      let nodes = new DOMParser().parseFromString(aux, "text/xml");
+      let imgNodes = nodes.getElementsByTagName("img");
+      for (let i = 0; i < imgNodes.length; i++) {
+        let src = imgNodes[i].getAttribute("src")
+        let image = this.getImageFromUrl(src.trim())
+        if (image != null) {
+          imgNodes[i].setAttribute("src",this.getUrlForBlob(image.blob));
+          aux = aux.replace(src, this.getUrlForBlob(image.blob))
+        }
+      }
+
+
       this.currentDescription = aux
-      let tmp = this.$el.querySelector(".layers-button").click()
+      this.$el.querySelector(".layers-button").click()
       this.showCurrentDescription = true
+    },
+
+    getImageFromUrl(url) {
+      for (let i=0; i<this.images.length;i++){
+        if (this.images[i].name.toLowerCase()==url.toLowerCase()) {
+          return this.images[i];
+        }
+      }
+      return null;
     },
 
     initMap() {
