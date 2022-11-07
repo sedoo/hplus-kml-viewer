@@ -394,49 +394,81 @@ export default {
     loadFolders(nodes) {
       let folders = []
       let document = nodes.getElementsByTagName("Document")[0]
-      let folderNodes = this.getChildrenByTagName(document, "Folder");
-      for (let folderNode of folderNodes) {
+      // let folderNodes = this.getChildrenByTagName(document, "Folder");
+//       for (let folderNode of folderNodes) {
+//           let name = folderNode.getElementsByTagName("name")[0].innerHTML;
+//           let description = null
+//           let aux = this.getChildrenByTagName(folderNode, "Placemark")
+          
+//           if (aux.length>0) {
+//             aux = this.getChildrenByTagName(aux[0], "description")
+//             if (aux.length>0) {
+//               description = aux[0].innerHTML;
+//             }
+//           }
+//           let folder = {}
+//           folder.name = name
+//           folder.description = description
+//           folder.children = []
+//           folders.push(folder)
+//           this.loadSubFolders(folderNode, folder)
+// }
+
+
+
+ let folderNodes = this.getChildrenByTagName(document, "Folder");
+      if (folderNodes.length>0) {
+        //we load the subfolders
+
+        for (let folderNode of folderNodes) {
           let name = folderNode.getElementsByTagName("name")[0].innerHTML;
           let description = null
-          let aux = this.getChildrenByTagName(folderNode, "Placemark")
-          
-          if (aux.length>0) {
-            aux = this.getChildrenByTagName(aux[0], "description")
-            if (aux.length>0) {
-              description = aux[0].innerHTML;
-            }
-          }
+
           let folder = {}
           folder.name = name
-          folder.description = description
           folder.children = []
           folders.push(folder)
           this.loadSubFolders(folderNode, folder)
-}
+        }
+      }
+
       this.folders = folders
     },
 
     loadSubFolders(parentNode, parent) {
       let folderNodes = this.getChildrenByTagName(parentNode, "Folder");
-       for (let folderNode of folderNodes) {
+      if (folderNodes.length>0) {
+        //we load the subfolders
+
+        for (let folderNode of folderNodes) {
           let name = folderNode.getElementsByTagName("name")[0].innerHTML;
           let description = null
-          let aux = this.getChildrenByTagName(folderNode, "Placemark")
-          
-          if (aux.length>0) {
-            aux = this.getChildrenByTagName(aux[0], "description")
-            if (aux.length>0) {
-              description = aux[0].innerHTML;
-            }
-          }
 
           let folder = {}
           folder.name = name
-          folder.description = description
           folder.children = []
           parent.children.push(folder)
           this.loadSubFolders(folderNode, folder)
         }
+      }
+      else {
+        //we load the placemarks
+        let placemarkNodes = this.getChildrenByTagName(parentNode, "Placemark")
+         if (placemarkNodes.length>0) {
+        //we load the subfolders
+
+        for (let placemarkNode of placemarkNodes) {
+          let name = placemarkNode.getElementsByTagName("name")[0].innerHTML;
+          let description = placemarkNode.getElementsByTagName("description")[0].innerHTML;
+
+          let folder = {}
+          folder.name = name
+          folder.description = description
+          parent.children.push(folder)
+        }
+      }
+
+      }
     },
 
     getChildrenByTagName(nodes, tagName) {
